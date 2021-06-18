@@ -1,7 +1,10 @@
 package identity
 
 import (
+	"encoding/base64"
 	"errors"
+	"github.com/iancoleman/orderedmap"
+	"golang.org/x/crypto/blake2b"
 
 	"github.com/TankerHQ/identity-go/b64json"
 )
@@ -46,14 +49,34 @@ func GetPublicIdentity(b64Identity string) (*string, error) {
 		return nil, errors.New("Unsupported identity target")
 	}
 
+	if publicIdentity.Target == "email" {
+		publicIdentity.Target = "hashed_email"
+		hashedEmail := blake2b.Sum256([]byte(publicIdentity.Value))
+		publicIdentity.Value = base64.StdEncoding.EncodeToString(hashedEmail[:])
+	}
+
 	return b64json.Encode(publicIdentity)
 }
 
 func UpgradeIdentity(b64Identity string) (*string, error) {
-	var identity interface{}
+	identity := orderedmap.New()
 	err := b64json.Decode(b64Identity, &identity)
 	if err != nil {
 		return nil, err
 	}
+
+	_, isPrivate := identity.Get("private_encryption_key")
+	target, found := identity.Get("target")
+	if found && target == "email" && !isPrivate {
+		identity.Set("target", "hashed_email")
+		value, valueFound := identity.Get("value")
+		if !valueFound {
+			return nil, errors.New("unsupported identity without value")
+		}
+
+		hashedEmail := blake2b.Sum256([]byte(value.(string)))
+		identity.Set("value", base64.StdEncoding.EncodeToString(hashedEmail[:]))
+	}
+
 	return b64json.Encode(identity)
 }
