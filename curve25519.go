@@ -1,4 +1,4 @@
-package curve25519
+package identity
 
 import (
 	"crypto/rand"
@@ -7,7 +7,10 @@ import (
 )
 
 func GenerateKey() (PublicKey []byte, PrivateKey []byte, Error error) {
-	sk := [32]byte{}
+	var (
+		sk [32]byte
+		pk [32]byte
+	)
 	if _, err := rand.Read(sk[:]); err != nil {
 		return nil, nil, err
 	}
@@ -16,7 +19,6 @@ func GenerateKey() (PublicKey []byte, PrivateKey []byte, Error error) {
 	sk[31] &= 127
 	sk[31] |= 64
 
-	pk := [32]byte{}
 	curve25519.ScalarBaseMult(&pk, &sk)
 
 	return pk[:], sk[:], nil

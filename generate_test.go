@@ -3,7 +3,6 @@ package identity
 import (
 	"encoding/base64"
 
-	"github.com/TankerHQ/identity-go/v2/b64json"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -28,9 +27,9 @@ var _ = Describe("generate", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		id := &identity{}
-		err = b64json.Decode(*identityB64, id)
+		err = Base64JsonDecode(identityB64, id)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(id.Target).Should(Equal("user"))
+		Expect(id.Target).Should(Equal(IdentityTargetUser))
 	})
 
 	It("returns an error if the App secret is a valid base64 string but has an incorrect size", func() {
@@ -52,9 +51,9 @@ var _ = Describe("generate", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		id := &provisionalIdentity{}
-		err = b64json.Decode(*identityB64, id)
+		err = Base64JsonDecode(identityB64, id)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(id.Target).Should(Equal("email"))
+		Expect(id.Target).Should(Equal(IdentityTargetEmail))
 		Expect(id.Value).Should(Equal("email@example.com"))
 		Expect(id.PrivateEncryptionKey).ShouldNot(BeEmpty())
 		Expect(id.PublicEncryptionKey).ShouldNot(BeEmpty())
@@ -67,10 +66,10 @@ var _ = Describe("generate", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		extractedPublicID := &publicIdentity{}
-		_ = b64json.Decode(*publicID, extractedPublicID)
+		_ = Base64JsonDecode(publicID, extractedPublicID)
 
 		extractedGoodPublicID := &publicIdentity{}
-		_ = b64json.Decode(goodPublicIdentity, extractedGoodPublicID)
+		_ = Base64JsonDecode(goodPublicIdentity, extractedGoodPublicID)
 		Expect(*extractedGoodPublicID).Should(Equal(*extractedPublicID))
 	})
 
@@ -79,14 +78,14 @@ var _ = Describe("generate", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		provisionalID := &provisionalIdentity{}
-		_ = b64json.Decode(*identityB64, provisionalID)
+		_ = Base64JsonDecode(identityB64, provisionalID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		publicID, err := GetPublicIdentity(*identityB64)
+		publicID, err := GetPublicIdentity(identityB64)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		extractedPublicID := &publicProvisionalIdentity{}
-		_ = b64json.Decode(*publicID, extractedPublicID)
+		_ = Base64JsonDecode(publicID, extractedPublicID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*extractedPublicID).Should(Equal(provisionalID.publicProvisionalIdentity))
 	})

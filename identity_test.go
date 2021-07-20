@@ -51,9 +51,9 @@ var _ = Describe("generateIdentity", func() {
 		identity, err := generateIdentity(conf, userID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(identity.TrustchainID).To(Equal(AppID))
-		Expect(identity.Target).To(Equal("user"))
+		Expect(identity.Target).To(Equal(IdentityTargetUser))
 		Expect(identity.Value).To(Equal(base64.StdEncoding.EncodeToString(obfuscatedUserID)))
-		checkDelegationSignature(*identity, trustchainPublicKey)
+		checkDelegationSignature(identity, trustchainPublicKey)
 	})
 
 	It("generateProvisionalIdentity returns a valid tanker provisional identity", func() {
@@ -61,7 +61,7 @@ var _ = Describe("generateIdentity", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(provisionalIdentity.TrustchainID).To(Equal(AppID))
-		Expect(provisionalIdentity.Target).To(Equal("email"))
+		Expect(provisionalIdentity.Target).To(Equal(IdentityTargetEmail))
 		Expect(provisionalIdentity.Value).To(Equal("email@example.com"))
 	})
 

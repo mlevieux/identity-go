@@ -5,13 +5,19 @@ import (
 	"encoding/base64"
 	"errors"
 
-	"github.com/TankerHQ/identity-go/v2/curve25519"
 	"golang.org/x/crypto/ed25519"
+)
+
+type IdentityTargetType string
+
+const (
+	IdentityTargetEmail IdentityTargetType = "email"
+	IdentityTargetUser IdentityTargetType = "user"
 )
 
 type publicIdentity struct {
 	TrustchainID []byte `json:"trustchain_id"`
-	Target       string `json:"target"`
+	Target       IdentityTargetType `json:"target"`
 	Value        string `json:"value"`
 }
 
@@ -35,11 +41,14 @@ type provisionalIdentity struct {
 	PrivateEncryptionKey []byte `json:"private_encryption_key"`
 }
 
-func generateIdentity(config config, userIDString string) (*identity, error) {
-	generatedAppID := generateAppID(config.AppSecret)
+func generateIdentity(config config, userIDString string) (identity, error) {
+	var (
+		id identity
+	)
 
+	generatedAppID := generateAppID(config.AppSecret)
 	if !bytes.Equal(generatedAppID, config.AppID) {
-		return nil, errors.New("App secret and app ID mismatch")
+		return id, errors.New("app secret and app ID mismatch")
 	}
 
 	userID := hashUserID(config.AppID, userIDString)
@@ -47,17 +56,18 @@ func generateIdentity(config config, userIDString string) (*identity, error) {
 
 	epubSignKey, eprivSignKey, err := ed25519.GenerateKey(nil)
 	if err != nil {
-		return nil, err
+		return id, err
 	}
 
-	payload := append(epubSignKey, userID...)
+	payload := make([]byte, len(epubSignKey) + len(userID))
+	copy(payload, epubSignKey)
+	copy(payload[len(epubSignKey):], userID)
 
 	delegationSignature := ed25519.Sign(config.AppSecret, payload)
-
-	identity := identity{
+	id = identity{
 		publicIdentity: publicIdentity{
 			TrustchainID: config.AppID,
-			Target:       "user",
+			Target:       IdentityTargetUser,
 			Value:        base64.StdEncoding.EncodeToString(userID),
 		},
 		DelegationSignature:          delegationSignature,
@@ -66,7 +76,7 @@ func generateIdentity(config config, userIDString string) (*identity, error) {
 		UserSecret:                   userSecret,
 	}
 
-	return &identity, nil
+	return id, nil
 }
 
 func generateProvisionalIdentity(config config, email string) (*provisionalIdentity, error) {
@@ -74,7 +84,7 @@ func generateProvisionalIdentity(config config, email string) (*provisionalIdent
 	if err != nil {
 		return nil, err
 	}
-	publicEncryptionKey, privateEncryptionKey, err := curve25519.GenerateKey()
+	publicEncryptionKey, privateEncryptionKey, err := GenerateKey()
 	if err != nil {
 		return nil, err
 	}
